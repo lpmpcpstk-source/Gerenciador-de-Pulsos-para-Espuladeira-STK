@@ -1,0 +1,804 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="description" content="Gerenciador de Pulso — Espuladeira · Cálculo preciso de pulsos para espuladeiras têxteis industriais">
+  <meta name="theme-color" content="#060A0E" media="(prefers-color-scheme: dark)">
+  <meta name="theme-color" content="#F0F4F8" media="(prefers-color-scheme: light)">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Pulso">
+  <meta name="application-name" content="Gerenciador de Pulso">
+  <meta name="msapplication-TileColor" content="#060A0E">
+  <meta name="format-detection" content="telephone=no">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="192x192" href="img/icons/icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="img/icons/icon-512x512.png">
+  <link rel="shortcut icon" type="image/png" href="img/icons/icon-96x96.png">
+  <link rel="apple-touch-icon" href="img/icons/icon-152x152.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="img/icons/icon-192x192.png">
+
+  <title>Gerenciador de Pulso — Espuladeira v4.0</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Share+Tech+Mono&family=Barlow+Condensed:wght@300;400;600;700;900&family=Barlow:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <!-- Aplica tema antes do primeiro paint (inline obrigatório) -->
+  <script>
+    (function(){
+      var s  = localStorage.getItem('gpe_theme');
+      var pl = window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches;
+      document.documentElement.setAttribute('data-theme',
+        (s === 'light' || ((!s) && pl)) ? 'light' : 'dark');
+    }());
+  </script>
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div id="toasts" role="status" aria-live="polite"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     LOGIN
+════════════════════════════════════════════════════════════ -->
+<div id="screen-login" role="main">
+  <div class="login-box">
+    <div class="login-top">
+      <img class="login-logo" src="img/logo.png" alt="Stickfran"
+           onerror="this.style.display='none';this.nextElementSibling.style.display='block'">
+      <div class="login-brand" style="display:none">
+        <span class="s">STICK</span><span class="f">FRAN</span>
+      </div>
+      <div class="login-product">Gerenciador de Pulso</div>
+      <div class="login-tagline">Espuladeira · Indústria Têxtil</div>
+      <div class="login-badge">
+        <div class="bdot"></div>
+        Sistema v4.0
+      </div>
+    </div>
+    <div class="login-body">
+      <div class="lf">
+        <label for="inp-user">Usuário</label>
+        <input type="text" id="inp-user" placeholder="login" autocomplete="username" spellcheck="false">
+      </div>
+      <div class="lf">
+        <label for="inp-pass">Senha</label>
+        <input type="password" id="inp-pass" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button class="btn-login" id="btn-login" type="button">Entrar no Sistema</button>
+      <div class="login-err hidden" id="login-err" role="alert">⚠ Usuário ou senha inválidos</div>
+      <div style="margin-top:14px;padding:8px 12px;background:rgba(255,140,0,.08);border:1px solid rgba(255,140,0,.22);border-radius:var(--r);font-size:10px;color:var(--t-lo);text-align:center;line-height:1.7">
+        ⚠ Modo demonstração — Em produção usar Supabase Auth<br>
+        <span style="font-family:var(--f-mono);color:var(--t-md)">Credenciais fornecidas pelo administrador do sistema</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     APP PRINCIPAL
+════════════════════════════════════════════════════════════ -->
+<div id="app">
+
+  <header class="hdr">
+    <div class="hdr-brand">
+      <img class="hdr-logo" src="img/logo.png" alt="Stickfran"
+           onerror="this.style.display='none'">
+      <div class="hdr-divider"></div>
+      <div class="hdr-title">
+        <span class="hdr-title-main">Gerenciador de Pulso</span>
+        <span class="hdr-title-sub">Espuladeira v4.0</span>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div class="db-indicator dbi-checking" id="db-indicator" title="Banco de dados" aria-live="polite">
+        <span class="db-dot" id="db-dot">◌</span>
+        <span class="db-lbl" id="db-lbl">Conectando…</span>
+      </div>
+      <button class="theme-btn" id="btn-theme" type="button" aria-label="Alternar tema">
+        <span class="theme-icon" aria-hidden="true">
+          <span class="theme-icon-sun">
+            <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+          </span>
+          <span class="theme-icon-moon">
+            <svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          </span>
+        </span>
+        <span class="theme-lbl" id="theme-lbl">Claro</span>
+      </button>
+      <div class="hdr-user">
+        <div class="udot"></div>
+        <span id="hdr-name">—</span>
+        <span id="hdr-role-tag"></span>
+      </div>
+      <button class="btn-logout" id="btn-logout" type="button">Sair</button>
+      <button class="btn-install-pwa" id="btn-instalar-pwa" type="button"
+              onclick="window._pwaInstall&&window._pwaInstall()"
+              title="Instalar app na tela inicial">
+        <svg viewBox="0 0 20 20"><path d="M10 3v10M6 9l4 4 4-4"/><path d="M3 15v2h14v-2"/></svg>
+        <span>Instalar</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="nav" role="navigation" aria-label="Abas do sistema">
+    <button class="nav-tab" data-tab="consulta" type="button">⚙ Consulta &amp; Setup</button>
+    <button class="nav-tab" data-tab="fichas" data-pcp type="button">
+      📋 Fichas Técnicas
+      <span class="nav-badge" id="badge-fichas">0</span>
+    </button>
+    <button class="nav-tab" data-tab="usuarios" data-admin type="button">
+      👥 Usuários
+      <span class="nav-badge" id="badge-users">0</span>
+    </button>
+    <button class="nav-tab" data-tab="analise" type="button">📐 Análise Técnica</button>
+  </nav>
+
+  <main class="main">
+
+    <!-- ══════════════════════════════════════════════════
+         ABA CONSULTA
+    ══════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-consulta">
+      <div class="sec-hdr">
+        <div class="sec-title">Setup de <em>Produção</em></div>
+        <div class="sec-sub">Selecione os parâmetros e calcule os pulsos exatos para programar a espuladeira</div>
+      </div>
+
+      <div class="layout-2col">
+        <div class="col-stack">
+
+          <!-- Fusos -->
+          <div class="card">
+            <div class="card-head ch-red">
+              <div class="dot dot-r"></div>
+              Configuração da Trançadeira
+            </div>
+            <div class="card-body">
+              <div class="fusos-lbl">Número de Fusos</div>
+              <div class="fusos-grid" id="fusos-grid"></div>
+            </div>
+          </div>
+
+          <!-- Parâmetros -->
+          <div class="card">
+            <div class="card-head ch-blue">
+              <div class="dot dot-b"></div>
+              Parâmetros do Pedido
+            </div>
+            <div class="card-body">
+              <div class="fg" style="gap:14px">
+                <div class="fi">
+                  <label>Ficha Técnica</label>
+                  <div class="ficha-sel-wrap" id="ficha-sel-wrap"></div>
+                </div>
+                <div class="fi">
+                  <label for="inp-metros">Metragem Total do Pedido (m)</label>
+                  <input type="number" id="inp-metros" placeholder="ex: 2880" min="1" step="1" inputmode="numeric">
+                  <div class="preview-strip" id="preview-strip">Informe os parâmetros acima para ver o resumo</div>
+                </div>
+              </div>
+              <div class="btn-grp" style="margin-top:18px">
+                <button class="btn btn-calc" id="btn-calcular" type="button">▶ Calcular Setup</button>
+                <button class="btn btn-sec"  id="btn-resetar"  type="button">↺ Limpar</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- FOTEK -->
+          <div class="fotek-panel">
+            <div class="fotek-row">
+              <div class="fotek-display" data-lbl="CAMADA DE FIO">
+                <div class="fotek-digits" id="fotek-camada">----</div>
+                <div class="fotek-unit">Pulsos</div>
+              </div>
+              <div class="fotek-display" data-lbl="CONTADOR DE BOBINAS">
+                <div class="fotek-digits" id="fotek-bobinas">----</div>
+                <div class="fotek-unit">Espulas</div>
+              </div>
+            </div>
+            <div class="fotek-lote-sel">
+              <button class="fotek-lot-btn" id="fotek-btn-l1" type="button" style="display:none">Lote 1 — Cheias</button>
+              <button class="fotek-lot-btn" id="fotek-btn-l2" type="button" style="display:none">Lote 2 — Parciais</button>
+            </div>
+          </div>
+
+          <!-- Histórico -->
+          <div class="hist-panel" id="hist-panel" style="display:none">
+            <div class="hist-title">Setups Recentes</div>
+            <div class="hist-list" id="hist-list"></div>
+          </div>
+
+        </div><!-- /col esq -->
+
+        <div>
+          <div id="rpt-empty" style="padding:60px 0;text-align:center;color:var(--t-lo)">
+            <div style="font-size:52px;margin-bottom:16px">⚙</div>
+            <div style="font-family:var(--f-cond);font-size:12px;letter-spacing:2px;text-transform:uppercase">
+              Configure os parâmetros e clique em Calcular Setup
+            </div>
+          </div>
+          <div id="rpt">
+            <div class="kpi-row" id="rpt-kpis"></div>
+            <div class="rpt-alert" id="rpt-alert"></div>
+            <div id="rpt-lotes"></div>
+            <div class="card" style="margin-top:16px">
+              <div class="card-head ch-amber">
+                <div class="dot dot-a"></div>
+                Detalhes do Cálculo
+              </div>
+              <div class="card-body">
+                <div class="calc-box" id="rpt-details"></div>
+                <div class="rounding-info hidden" id="rounding-info">
+                  <span class="rounding-info-icon">📏</span>
+                  <span class="rounding-info-txt">Margem de arredondamento Lote 2 — fio extra por espula parcial:</span>
+                  <span class="rounding-info-val" id="rounding-val"></span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div><!-- /consulta -->
+
+
+    <!-- ══════════════════════════════════════════════════
+         ABA FICHAS
+    ══════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-fichas" data-pcp>
+      <div class="sec-hdr">
+        <div class="sec-title">Fichas <em>Técnicas</em></div>
+        <div class="sec-sub">Cadastre e gerencie as receitas de produção das espuladeiras</div>
+      </div>
+
+      <div class="layout-2col">
+
+        <!-- Formulário -->
+        <div class="card" id="fichas-form-card">
+          <div class="card-head ch-teal">
+            <div class="dot dot-t"></div>
+            <span id="form-title">Nova Ficha Técnica</span>
+          </div>
+          <div class="card-body" id="fichas-form">
+            <div class="fg" style="gap:12px">
+
+              <div class="fi" id="fi-nome">
+                <label for="f-nome">Nome / Código da Ficha *</label>
+                <input type="text" id="f-nome" placeholder="ex: POL-3F-720M-BRANCA"
+                       autocapitalize="characters" spellcheck="false">
+                <span class="field-err" id="err-nome"></span>
+              </div>
+
+              <div class="fg fg-2">
+                <div class="fi">
+                  <label for="f-material">Material do Fio</label>
+                  <select id="f-material">
+                    <option>Poliéster</option>
+                    <option>Nylon</option>
+                    <option>Polipropileno</option>
+                    <option>Algodão</option>
+                    <option>Elástico</option>
+                    <option>Outro</option>
+                  </select>
+                </div>
+                <div class="fi" id="fi-fios">
+                  <label for="f-fios">Qtd. de Fios *</label>
+                  <input type="number" id="f-fios" placeholder="3" min="1" max="20" inputmode="numeric">
+                  <span class="field-err" id="err-fios"></span>
+                </div>
+              </div>
+
+              <div class="fg fg-2">
+                <div class="fi" id="fi-d0">
+                  <label for="f-d0">Diâm. Vazio (cm) *</label>
+                  <input type="number" id="f-d0" placeholder="6.0" min="1" max="20" step="0.1" value="6">
+                  <span class="field-err" id="err-d0"></span>
+                </div>
+                <div class="fi" id="fi-dmax">
+                  <label for="f-dmax">Diâm. Cheio (cm) *</label>
+                  <input type="number" id="f-dmax" placeholder="13.0" min="1" max="40" step="0.1">
+                  <span class="field-err" id="err-dmax"></span>
+                </div>
+              </div>
+
+              <!-- Preview de parâmetros calculados -->
+              <div id="ficha-preview" style="display:none">
+                <div style="background:var(--bg3);border:1px solid var(--teal-bd);border-radius:var(--r);padding:var(--s2) var(--s4);font-family:var(--f-mono);font-size:11px;color:var(--teal)">
+                  <span id="ficha-preview-txt"></span>
+                </div>
+              </div>
+
+              <div class="fg fg-2">
+                <div class="fi" id="fi-pmax">
+                  <label for="f-pmax">Pulsos Máx. *</label>
+                  <input type="number" id="f-pmax" placeholder="60" min="1" max="999" inputmode="numeric">
+                  <span class="field-err" id="err-pmax"></span>
+                </div>
+                <div class="fi" id="fi-mmax">
+                  <label for="f-mmax">Metragem Máx. (m) *</label>
+                  <input type="number" id="f-mmax" placeholder="720" min="1" max="99999" inputmode="numeric">
+                  <span class="field-err" id="err-mmax"></span>
+                </div>
+              </div>
+
+              <div class="fg fg-2">
+                <div class="fi">
+                  <label for="f-espula">Tipo de Espula</label>
+                  <select id="f-espula">
+                    <option>Branca</option>
+                    <option>Vermelha</option>
+                    <option>Verde</option>
+                    <option>Outra</option>
+                  </select>
+                </div>
+                <div class="fi">
+                  <label for="f-comp">Comprimento (cm)</label>
+                  <input type="number" id="f-comp" placeholder="14" min="0" max="50" step="0.1">
+                </div>
+              </div>
+
+              <div class="fi">
+                <label for="f-obs">Observações</label>
+                <input type="text" id="f-obs" placeholder="opcional…">
+              </div>
+
+              <div class="btn-grp" style="margin-top:4px">
+                <button class="btn btn-prim" id="btn-salvar" type="button">💾 Salvar Ficha</button>
+                <button class="btn btn-sec hidden" id="btn-cancelar" type="button">✕ Cancelar</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela -->
+        <div class="card">
+          <div class="card-head ch-blue" style="padding:0">
+            <div class="fichas-search-bar">
+              <div class="fichas-search-icon">
+                <svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="5"/><path d="M10 10l4 4"/></svg>
+              </div>
+              <input type="text" id="fichas-search" placeholder="Buscar por nome, material, espula…" autocomplete="off">
+              <span class="fichas-filter-count" id="fichas-count"></span>
+            </div>
+          </div>
+          <div id="fichas-table"></div>
+        </div>
+
+      </div>
+
+      <!-- ── Painel de Backup — visível apenas para Admin/PCP ── -->
+      <div id="backup-panel" data-admin style="margin-top:24px">
+        <div class="card">
+          <div class="card-head ch-red">
+            <div class="dot dot-r" style="animation:blink 2s infinite"></div>
+            <span>Backup &amp; Exportação de Dados</span>
+            <span id="backup-admin-nome" style="margin-left:auto;font-family:var(--f-mono);font-size:10px;opacity:.7"></span>
+          </div>
+          <div class="card-body">
+            <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:flex-start">
+
+              <!-- Info -->
+              <div style="flex:1;min-width:220px">
+                <div style="font-family:var(--f-cond);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--t-md);text-transform:uppercase;margin-bottom:10px">Banco de Dados</div>
+                <div style="background:var(--bg2);border:1px solid var(--bd);border-radius:var(--r);padding:12px 14px;font-family:var(--f-mono);font-size:12px;line-height:2">
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--t-md)">Fichas cadastradas</span>
+                    <span id="backup-total" style="color:var(--led-blu)">—</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--t-md)">Tabela</span>
+                    <span style="color:var(--t-md)">fichas_tecnicas</span>
+                  </div>
+                  <div style="display:flex;justify-content:space-between">
+                    <span style="color:var(--t-md)">Última atualização</span>
+                    <span id="backup-lastupdate" style="color:var(--t-lo);font-size:10px">—</span>
+                  </div>
+                </div>
+                <button class="btn btn-sec" id="btn-backup-refresh"
+                  onclick="Backup.atualizarContagem();document.getElementById('backup-lastupdate').textContent=new Date().toLocaleTimeString('pt-BR')"
+                  style="margin-top:10px;width:100%;font-size:11px">
+                  ↻ Atualizar contagem
+                </button>
+              </div>
+
+              <!-- Exportar -->
+              <div style="flex:1;min-width:220px">
+                <div style="font-family:var(--f-cond);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--t-md);text-transform:uppercase;margin-bottom:10px">Exportar Backup</div>
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <button class="btn btn-calc" id="btn-backup-json"
+                    onclick="Backup.exportarJSON()"
+                    style="justify-content:center;font-size:12px;padding:11px 16px">
+                    ⬇ Exportar JSON
+                  </button>
+                  <button class="btn btn-sec" id="btn-backup-csv"
+                    onclick="Backup.exportarCSV()"
+                    style="font-size:12px;padding:11px 16px;justify-content:center">
+                    ⬇ Exportar CSV&nbsp;<span style="font-size:10px;opacity:.7">(Excel)</span>
+                  </button>
+                </div>
+                <div style="margin-top:10px;font-size:10px;color:var(--t-lo);line-height:1.6;font-style:italic">
+                  JSON inclui todos os campos + metadados.<br>
+                  CSV abre diretamente no Excel / LibreOffice.
+                </div>
+              </div>
+
+              <!-- Aviso -->
+              <div style="flex:2;min-width:260px">
+                <div style="font-family:var(--f-cond);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--t-md);text-transform:uppercase;margin-bottom:10px">Instruções de Uso</div>
+                <div style="background:var(--bg2);border:1px solid var(--bd);border-left:3px solid var(--led-amb);border-radius:var(--r);padding:12px 14px;font-size:11px;color:var(--t-md);line-height:1.8">
+                  <b style="color:var(--led-amb)">⚠ Recomendações de segurança:</b><br>
+                  • Realize backups <b>semanalmente</b> ou antes de qualquer migração<br>
+                  • Guarde o arquivo JSON para restaurar dados em novo banco<br>
+                  • Use o CSV para conferências no Excel<br>
+                  • Armazene os backups em local seguro (Drive, HD externo)<br>
+                  • O backup inclui fichas ativas <b>e</b> inativas (excluídas)
+                </div>
+              </div>
+
+            </div>
+          </div>
+        </div>
+      </div><!-- /backup-panel -->
+
+    </div><!-- /fichas -->
+
+
+    <!-- ══════════════════════════════════════════════════
+         ABA USUÁRIOS — visível apenas para Admin
+    ══════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-usuarios" data-admin>
+      <div class="sec-hdr">
+        <div class="sec-title">Gerenciar <em>Usuários</em></div>
+        <div class="sec-sub">Cadastre usuários e defina o nível de acesso de cada um</div>
+      </div>
+
+      <!-- Legenda de perfis -->
+      <div class="layout-3col" style="margin-bottom:20px;gap:12px">
+
+        <div class="card" style="border-left:3px solid var(--red-lt)">
+          <div class="card-body" style="padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <span class="tag tag-admin" style="font-size:11px">Admin</span>
+            </div>
+            <div style="font-size:11px;color:var(--t-md);line-height:1.7">
+              ✅ Consulta &amp; Setup<br>
+              ✅ Fichas Técnicas<br>
+              ✅ Backup &amp; Exportação<br>
+              ✅ Gerenciar Usuários<br>
+              ✅ Análise Técnica
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:3px solid var(--teal)">
+          <div class="card-body" style="padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <span class="tag tag-pcp" style="font-size:11px">PCP</span>
+            </div>
+            <div style="font-size:11px;color:var(--t-md);line-height:1.7">
+              ✅ Consulta &amp; Setup<br>
+              ✅ Fichas Técnicas<br>
+              ❌ Backup &amp; Exportação<br>
+              ❌ Gerenciar Usuários<br>
+              ✅ Análise Técnica
+            </div>
+          </div>
+        </div>
+
+        <div class="card" style="border-left:3px solid var(--led-blu)">
+          <div class="card-body" style="padding:14px 16px">
+            <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+              <span class="tag tag-op" style="font-size:11px">Operador</span>
+            </div>
+            <div style="font-size:11px;color:var(--t-md);line-height:1.7">
+              ✅ Consulta &amp; Setup<br>
+              ❌ Fichas Técnicas<br>
+              ❌ Backup &amp; Exportação<br>
+              ❌ Gerenciar Usuários<br>
+              ✅ Análise Técnica
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /legenda -->
+
+      <div class="layout-2col">
+
+        <!-- Formulário novo/editar usuário -->
+        <div class="card" id="fichas-form-card-users">
+          <div class="card-head ch-red">
+            <div class="dot dot-r"></div>
+            <span id="user-form-title">➕ Novo Usuário</span>
+          </div>
+          <div class="card-body">
+            <div class="fg" style="gap:12px">
+
+              <div class="fi" id="fi-u-nome">
+                <label for="u-nome">Nome completo *</label>
+                <input type="text" id="u-nome" placeholder="ex: João Silva" autocomplete="off">
+                <span class="field-err" id="err-u-nome"></span>
+              </div>
+
+              <div class="fi" id="fi-u-login">
+                <label for="u-login">Login (usuário) *</label>
+                <input type="text" id="u-login" placeholder="ex: joao.silva"
+                       autocapitalize="none" spellcheck="false" autocomplete="off">
+                <span class="field-err" id="err-u-login"></span>
+              </div>
+
+              <div class="fi" id="fi-u-senha">
+                <label for="u-senha">Senha *</label>
+                <div style="position:relative">
+                  <input type="password" id="u-senha" placeholder="mínimo 4 caracteres" autocomplete="new-password"
+                         style="padding-right:42px">
+                  <button type="button" id="btn-toggle-senha"
+                    onclick="(function(){const i=document.getElementById('u-senha');i.type=i.type==='password'?'text':'password';this.textContent=i.type==='password'?'👁':'🙈';}).call(this)"
+                    style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:16px;color:var(--t-md);padding:0;line-height:1">👁</button>
+                </div>
+                <span class="field-err" id="err-u-senha"></span>
+                <span id="u-senha-hint" style="font-size:10px;color:var(--t-lo);margin-top:3px;display:block"></span>
+              </div>
+
+              <div class="fi" id="fi-u-perfil">
+                <label for="u-perfil">Nível de Acesso *</label>
+                <select id="u-perfil">
+                  <option value="Operador">Operador — somente consulta</option>
+                  <option value="PCP">PCP — acesso parcial</option>
+                  <option value="Admin">Admin — acesso completo</option>
+                </select>
+                <span class="field-err" id="err-u-perfil"></span>
+              </div>
+
+              <div class="btn-grp" style="margin-top:4px">
+                <button class="btn btn-prim" id="btn-user-salvar" type="button">💾 Salvar Usuário</button>
+                <button class="btn btn-sec hidden" id="btn-user-cancelar" type="button">✕ Cancelar</button>
+              </div>
+
+              <div style="background:var(--bg2);border:1px solid var(--bd);border-left:3px solid var(--led-amb);border-radius:var(--r);padding:10px 12px;font-size:10px;color:var(--t-lo);line-height:1.7;margin-top:4px">
+                ⚠ <strong style="color:var(--led-amb)">Atenção:</strong> As senhas são armazenadas localmente no dispositivo (modo demonstração).<br>
+                Em produção, migre para Supabase Auth para autenticação segura.
+              </div>
+
+            </div>
+          </div>
+        </div>
+
+        <!-- Tabela de usuários -->
+        <div class="card">
+          <div class="card-head ch-blue" style="padding:0">
+            <div class="fichas-search-bar">
+              <div class="fichas-search-icon">
+                <svg viewBox="0 0 16 16"><circle cx="6.5" cy="6.5" r="5"/><path d="M10 10l4 4"/></svg>
+              </div>
+              <input type="text" id="users-search" placeholder="Buscar por nome, login, perfil…" autocomplete="off">
+              <span class="fichas-filter-count" id="users-count"></span>
+            </div>
+          </div>
+          <div id="users-table"></div>
+        </div>
+
+      </div><!-- /layout-2col -->
+    </div><!-- /usuarios -->
+
+
+    <!-- ══════════════════════════════════════════════════
+         ABA ANÁLISE TÉCNICA
+    ══════════════════════════════════════════════════ -->
+    <div class="panel" id="panel-analise">
+      <div class="sec-hdr">
+        <div class="sec-title">Análise <em>Técnica</em></div>
+        <div class="sec-sub">Validação matemática, dados físicos das espulas e modelo de cálculo</div>
+      </div>
+
+      <div class="layout-2eq" style="margin-bottom:20px">
+        <div class="spool-card spool-branca">
+          <div class="spool-name">⚪ ESPULA BRANCA</div>
+          <div class="dr"><span class="dr-k">Diâmetro vazio</span><span class="dr-v">6,0 cm</span></div>
+          <div class="dr"><span class="dr-k">Diâmetro cheio</span><span class="dr-v dv-blu">13,0 cm</span></div>
+          <div class="dr"><span class="dr-k">Comprimento útil</span><span class="dr-v">14,0 cm</span></div>
+          <div class="dr"><span class="dr-k">Peso vazio</span><span class="dr-v">53,3 g</span></div>
+          <div class="dr"><span class="dr-k">Peso cheio</span><span class="dr-v">150,0 g</span></div>
+          <div class="dr"><span class="dr-k">Massa de fio</span><span class="dr-v dv-grn">96,7 g</span></div>
+          <div class="dr"><span class="dr-k">Pulsos máximos</span><span class="dr-v dv-blu">60 pulsos</span></div>
+          <div class="dr"><span class="dr-k">Metragem máxima</span><span class="dr-v dv-blu">720 m</span></div>
+          <div class="dr"><span class="dr-k">Metros / pulso</span><span class="dr-v dv-grn">12,00 m/p</span></div>
+          <div class="dr"><span class="dr-k">C₀ / C_max / C_med</span><span class="dr-v">18,85 / 40,84 / 29,84 cm</span></div>
+          <div class="dr"><span class="dr-k">V_max</span><span class="dr-v">2.412 voltas</span></div>
+          <div class="dr"><span class="dr-k">K (voltas/pulso)</span><span class="dr-v">40,21</span></div>
+        </div>
+        <div class="spool-card spool-vermelha">
+          <div class="spool-name">🔴 ESPULA VERMELHA</div>
+          <div class="dr"><span class="dr-k">Diâmetro vazio</span><span class="dr-v">6,0 cm</span></div>
+          <div class="dr"><span class="dr-k">Diâmetro cheio</span><span class="dr-v dv-blu">12,5 cm</span></div>
+          <div class="dr"><span class="dr-k">Comprimento útil</span><span class="dr-v">11,0 cm</span></div>
+          <div class="dr"><span class="dr-k">Peso vazio</span><span class="dr-v">31,2 g</span></div>
+          <div class="dr"><span class="dr-k">Peso cheio</span><span class="dr-v">120,3 g</span></div>
+          <div class="dr"><span class="dr-k">Massa de fio</span><span class="dr-v dv-grn">89,1 g</span></div>
+          <div class="dr"><span class="dr-k">Pulsos máximos</span><span class="dr-v dv-blu">58 pulsos</span></div>
+          <div class="dr"><span class="dr-k">Metragem estimada</span><span class="dr-v dv-amb">≈ 663 m ¹</span></div>
+          <div class="dr"><span class="dr-k">Metros / pulso</span><span class="dr-v dv-amb">11,43 m/p</span></div>
+          <div class="dr"><span class="dr-k">C₀ / C_max / C_med</span><span class="dr-v">18,85 / 39,27 / 29,06 cm</span></div>
+          <div class="dr"><span class="dr-k">V_max</span><span class="dr-v">2.282 voltas</span></div>
+          <div class="dr"><span class="dr-k">K (voltas/pulso)</span><span class="dr-v">39,35</span></div>
+          <div style="margin-top:10px;font-size:10px;color:var(--t-lo);font-style:italic;line-height:1.7">
+            ¹ Estimado por método de massa (89,1g ÷ 0,13431 g/m). Confirmar medindo na máquina.
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head ch-teal">
+          <div class="dot dot-t"></div>
+          Modelo Matemático — Espiral de Arquimedes (Crescimento Radial Linear)
+        </div>
+        <div class="card-body">
+          <p style="color:var(--t-md);font-size:13px;line-height:1.8;margin-bottom:16px">
+            O enrolamento radial é equivalente a uma espiral de Arquimedes. O raio cresce linearmente
+            com o número de pulsos, portanto cada volta percorre uma circunferência maior que a anterior.
+            A metragem acumulada após <em>x</em> pulsos é uma <strong style="color:var(--t-hi)">função
+            quadrática</strong> — por isso a regra de três simples falha sistematicamente e é necessário
+            resolver por Bhaskara.
+          </p>
+          <div class="formula-box">
+<span class="fc">/* Passo 1 — Grandezas base */</span>
+<span class="fl">C₀</span>    = π × D₀ / 100      <span class="fc">// Circunferência vazia (m)</span>
+<span class="fl">C_max</span> = π × D_max / 100   <span class="fc">// Circunferência cheia (m)</span>
+<span class="fl">C_med</span> = (C₀ + C_max) / 2
+<span class="fl">V_max</span> = M_max / C_med     <span class="fc">// Voltas totais</span>
+<span class="fl">K</span>     = V_max / P_max     <span class="fc">// Constante do sensor (voltas/pulso)</span>
+<span class="fsep"></span>
+<span class="fc">/* Passo 2 — Metragem acumulada após x pulsos */</span>
+<span class="fl">m(x)</span> = C₀·K·x + (ΔC·K)/(2·P_max)·x²
+<span class="fc">    onde  ΔC = C_max − C₀</span>
+<span class="fsep"></span>
+<span class="fc">/* Passo 3 — Inverter: pulsos → Bhaskara */</span>
+<span class="fl">a</span> = (ΔC × K) / (2 × P_max)
+<span class="fl">b</span> = C₀ × K
+<span class="fl">c</span> = −m_desejada
+<span class="fl">x</span> = (−b + √(b²−4ac)) / (2a)
+<span class="fl">P</span> = ⌈x⌉   <span class="fc">// Arredondar para CIMA (nunca falta fio)</span>
+<span class="fl">Margem</span> = m(⌈x⌉) − m_des   <span class="fc">// Exibida no relatório (v3.0)</span>
+<span class="fsep"></span>
+<span class="fc">/* Passo 4 — Divisão em lotes */</span>
+<span class="fl">cheias_por_fuso</span> = ⌊M_total / M_max⌋
+<span class="fl">sobra_por_fuso</span>  = M_total mod M_max
+<span class="fl">Lote 1</span>: P_max pulsos × (cheias_por_fuso × N_fusos) espulas
+<span class="fl">Lote 2</span>: P_sobra pulsos × N_fusos espulas  (se sobra &gt; 0)
+          </div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-bottom:20px">
+        <div class="card-head ch-amber">
+          <div class="dot dot-a"></div>
+          Comparativo Físico — Espula Branca × Vermelha
+        </div>
+        <div class="analise-compare">
+          <div class="tbl-wrap">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  <th>Parâmetro</th><th>Espula Branca</th><th>Espula Vermelha</th><th>Razão V/B</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td>Comprimento útil (cm)</td><td class="td-val">14,0</td><td class="td-val">11,0</td><td class="td-val">78,6%</td></tr>
+                <tr><td>Diâmetro vazio (cm)</td><td class="td-val">6,0</td><td class="td-val">6,0</td><td class="td-val">100%</td></tr>
+                <tr><td>Diâmetro cheio (cm)</td><td class="td-val">13,0</td><td class="td-val">12,5</td><td class="td-val">96,2%</td></tr>
+                <tr><td>Massa de fio (g)</td><td class="td-val">96,7</td><td class="td-val">89,1</td><td class="td-val">92,1%</td></tr>
+                <tr><td>Pulsos máximos</td><td class="td-val">60 p</td><td class="td-val">58 p</td><td class="td-val">96,7%</td></tr>
+                <tr><td>Metragem máxima</td><td class="td-val" style="color:var(--led-blu)!important">720 m</td><td class="td-val" style="color:var(--led-amb)!important">≈663 m</td><td class="td-val">92,1%</td></tr>
+                <tr><td>Metros / pulso</td><td class="td-val">12,00</td><td class="td-val">11,43</td><td class="td-val">95,2%</td></tr>
+                <tr><td>Dens. enrolamento (m/cm³)</td><td class="td-val">0,4923</td><td class="td-val">0,6386</td><td class="td-val">129,7% ²</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div style="padding:12px 16px;font-size:11px;color:var(--t-lo);border-top:1px solid var(--bd);line-height:1.8">
+            ¹ Metragem vermelha estimada por método de massa. ² Densidade maior = fio de titulagem inferior (mais metros por grama).
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-head ch-grn">
+          <div class="dot dot-g"></div>
+          Conclusões e Validação
+        </div>
+        <div class="card-body">
+          <div class="layout-2eq">
+            <div>
+              <div style="font-family:var(--f-cond);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--led-grn);text-transform:uppercase;margin-bottom:10px">✅ Modelo Validado</div>
+              <div class="check-list">
+                <div class="check-item ok">Modelo de circunferência média matematicamente equivalente à integração da espiral de Arquimedes — <strong>sem erro no modelo</strong>.</div>
+                <div class="check-item ok">Resolução por Bhaskara é exata para inverter a equação quadrática e encontrar pulsos a partir da metragem.</div>
+                <div class="check-item ok">Arredondamento para cima ⌈x⌉ correto — margem de arredondamento exibida no relatório (v3.0).</div>
+              </div>
+            </div>
+            <div>
+              <div style="font-family:var(--f-cond);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--led-amb);text-transform:uppercase;margin-bottom:10px">⚠ Ações Recomendadas</div>
+              <div class="check-list">
+                <div class="check-item warn">Confirmar metragem da espula vermelha medindo fisicamente. Valor estimado: <strong>≈ 663 m</strong>.</div>
+                <div class="check-item warn">Verificar pulsos máximos para espula branca: ficha configurada com 60 pulsos conforme documento.</div>
+                <div class="check-item warn">Realizar teste de calibração: encher 1 espula vermelha com 58 pulsos e medir a metragem desemrolada.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /analise -->
+
+  </main>
+</div><!-- /#app -->
+
+
+<!-- ════════════════════════════════════════════════════════════
+     JAVASCRIPT — carregados na ordem de dependência
+════════════════════════════════════════════════════════════ -->
+<script src="js/config.js"></script>
+<script src="js/storage.js"></script>
+<script src="js/db.js"></script>
+<script src="js/db-state.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/calc.js"></script>
+<script src="js/theme.js"></script>
+<script src="js/ficha-select.js"></script>
+<script src="js/ui.js"></script>
+<script src="js/fichas.js"></script>
+<script src="js/report.js"></script>
+<script src="js/history.js"></script>
+<script src="js/users.js"></script>
+<script src="js/backup.js"></script>
+<script src="js/app.js"></script>
+
+<!-- PWA — Registro do Service Worker -->
+<script>
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('./service-worker.js', { scope: './' })
+      .then(function(reg){
+        console.log('[PWA] SW registrado:', reg.scope);
+        reg.addEventListener('updatefound', function(){
+          var nw = reg.installing;
+          if (!nw) return;
+          nw.addEventListener('statechange', function(){
+            if (nw.state === 'installed' && navigator.serviceWorker.controller)
+              console.log('[PWA] Nova versão disponível — recarregue a página.');
+          });
+        });
+      })
+      .catch(function(err){ console.warn('[PWA] Falha SW:', err); });
+  });
+
+  var deferredPrompt = null;
+  window.addEventListener('beforeinstallprompt', function(e){
+    e.preventDefault(); deferredPrompt = e;
+    var btn = document.getElementById('btn-instalar-pwa');
+    if (btn) btn.style.display = 'flex';
+  });
+  window.addEventListener('appinstalled', function(){
+    deferredPrompt = null;
+    var btn = document.getElementById('btn-instalar-pwa');
+    if (btn) btn.style.display = 'none';
+  });
+  window._pwaInstall = function(){
+    if (!deferredPrompt) return;
+    deferredPrompt.prompt();
+    deferredPrompt.userChoice.then(function(c){
+      console.log('[PWA] Escolha:', c.outcome);
+      deferredPrompt = null;
+      var btn = document.getElementById('btn-instalar-pwa');
+      if (btn) btn.style.display = 'none';
+    });
+  };
+}());
+</script>
+
+</body>
+</html>
