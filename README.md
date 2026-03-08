@@ -1,0 +1,1 @@
+# Gerenciador-de-Pulsos-para-Espuladeira-STK
